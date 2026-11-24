@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">SoundState</string>
+    <string name="home_subtitle">Sound control center</string>
+    <string name="panel">Sound panel</string>
+    <string name="panel_summary">Adjust volume or switch sound modes.</string>
+    <string name="open_panel">Open panel</string>
+    <string name="quick_settings">Quick Settings</string>
+    <string name="tile_summary">Tap the tile to cycle sound modes. Touch and hold to open the panel.</string>
+    <string name="add_tile">Add tile</string>
+    <string name="tile_added">SoundState added to Quick Settings</string>
+    <string name="tile_exists">SoundState is already in Quick Settings</string>
+    <string name="tile_cancelled">Tile not added</string>
+    <string name="manual_tile">Open Quick Settings, tap Edit, and drag SoundState into your active tiles.</string>
+    <string name="media_volume">Media volume</string>
+    <string name="ring_volume">Ring volume</string>
+    <string name="alarm_volume">Alarm volume</string>
+    <string name="ring">Ring</string>
+    <string name="vibrate">Vibrate</string>
+    <string name="silent">Silent</string>
+    <string name="mode_unavailable">This device cannot switch to %1$s.</string>
+    <string name="permission_title">Allow sound mode changes</string>
+    <string name="permission_body">Allow SoundState to access Do Not Disturb in Settings, then try again.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="permission_hint">Search Settings for Do Not Disturb access.</string>
+</resources>

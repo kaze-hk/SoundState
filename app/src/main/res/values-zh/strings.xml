@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">声态</string>
+    <string name="home_subtitle">声音控制中心</string>
+    <string name="panel">声音面板</string>
+    <string name="panel_summary">调节音量或切换声音模式。</string>
+    <string name="open_panel">打开面板</string>
+    <string name="quick_settings">快捷设置</string>
+    <string name="tile_summary">点按磁贴循环切换声音模式，长按打开声音面板。</string>
+    <string name="add_tile">添加快捷按钮</string>
+    <string name="tile_added">声态已添加到快捷设置</string>
+    <string name="tile_exists">声态已在快捷设置中</string>
+    <string name="tile_cancelled">已取消添加</string>
+    <string name="manual_tile">展开快捷设置，点按编辑，将「声态」拖入常用区域。</string>
+    <string name="media_volume">媒体音量</string>
+    <string name="ring_volume">铃声音量</string>
+    <string name="alarm_volume">闹钟音量</string>
+    <string name="ring">响铃</string>
+    <string name="vibrate">振动</string>
+    <string name="silent">静音</string>
+    <string name="mode_unavailable">此设备无法切换到%1$s。</string>
+    <string name="permission_title">允许切换声音模式</string>
+    <string name="permission_body">请在系统设置中允许声态访问勿扰模式，返回后再试一次。</string>
+    <string name="open_settings">前往设置</string>
+    <string name="permission_hint">请在系统设置中搜索「勿扰模式使用权」。</string>
+</resources>

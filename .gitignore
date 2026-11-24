@@ -1,0 +1,26 @@
+# Android Studio and local SDK settings
+.idea/
+*.iml
+local.properties
+.DS_Store
+
+# Gradle, Kotlin and native build output
+.gradle/
+.kotlin/
+build/
+.externalNativeBuild/
+.cxx/
+captures/
+*.apk
+*.aab
+
+# Local signing material and credentials
+*.jks
+*.keystore
+*.p12
+key.properties
+keystore.properties
+signing.properties
+.env
+.env.*
+!.env.example
