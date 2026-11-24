@@ -24,8 +24,11 @@
     <string name="open_settings">Open settings</string>
     <string name="permission_hint">Search Settings for Do Not Disturb access.</string>
     <string name="background_controls">Background tile controls</string>
-    <string name="controls_active">Background tile controls are on</string>
-    <string name="controls_hint">Enable controls to use the tile after leaving SoundState. You can stop them from the notification.</string>
-    <string name="start_controls">Enable background controls</string>
-    <string name="stop_controls">Stop background controls</string>
+    <string name="controls_active">Background tile control is on</string>
+    <string name="controls_notification_body">Use Quick Settings to switch between Ring, Vibrate, and Silent while away from SoundState. Tap to manage background control.</string>
+    <string name="stop_controls">Turn off background control</string>
+    <string name="tile_title">Sound mode tile</string>
+    <string name="dnd_title">Do Not Disturb</string>
+    <string name="open_settings_short">Settings</string>
+    <string name="tile_background_summary">Use the tile to switch sound modes after leaving SoundState.</string>
 </resources>

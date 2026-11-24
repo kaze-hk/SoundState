@@ -19,7 +19,7 @@ class TileControlService : Service() {
         const val ENABLED = "background_controls_enabled"
         const val READY = "controls_ready"
         private const val CHANNEL = "background_controls"
-        private const val STOP = "com.example.soundcontrolcenter.STOP_CONTROLS"
+        const val STOP = "com.example.soundcontrolcenter.STOP_CONTROLS"
     }
 
     @RequiresApi(37)
@@ -40,8 +40,9 @@ class TileControlService : Service() {
             Intent(this, TileControlService::class.java).setAction(STOP), PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_wave)
-            .setContentTitle(getString(R.string.background_controls))
-            .setContentText(getString(R.string.controls_active))
+            .setContentTitle(getString(R.string.controls_active))
+            .setContentText(getString(R.string.controls_notification_body))
+            .setStyle(Notification.BigTextStyle().bigText(getString(R.string.controls_notification_body)))
             .setContentIntent(open)
             .setOngoing(true)
             .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)

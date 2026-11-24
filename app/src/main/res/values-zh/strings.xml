@@ -5,7 +5,7 @@
     <string name="panel_summary">调节音量或切换声音模式。</string>
     <string name="open_panel">打开面板</string>
     <string name="quick_settings">快捷设置</string>
-    <string name="tile_summary">每次点按按响铃、振动、静音的顺序切换，长按打开声音面板。</string>
+    <string name="tile_summary">点按可在响铃、振动和静音之间切换，长按可打开声音面板。</string>
     <string name="silent_dnd_note">在部分设备上，进入或退出静音也会改变系统勿扰状态。</string>
     <string name="add_tile">添加快捷按钮</string>
     <string name="tile_added">声态已添加到快捷设置</string>
@@ -24,8 +24,11 @@
     <string name="open_settings">前往设置</string>
     <string name="permission_hint">请在系统设置中搜索「勿扰模式使用权」。</string>
     <string name="background_controls">后台磁贴控制</string>
-    <string name="controls_active">后台磁贴控制已开启</string>
-    <string name="controls_hint">开启后，离开声态也能用磁贴切换声音模式。可从通知中停止。</string>
-    <string name="start_controls">开启后台磁贴控制</string>
-    <string name="stop_controls">停止后台磁贴控制</string>
+    <string name="controls_active">磁贴后台控制已开启</string>
+    <string name="controls_notification_body">离开声态后，也能从快捷设置切换响铃、振动或静音。点按可管理后台控制。</string>
+    <string name="stop_controls">关闭后台控制</string>
+    <string name="tile_title">声音模式磁贴</string>
+    <string name="dnd_title">勿扰模式</string>
+    <string name="open_settings_short">设置</string>
+    <string name="tile_background_summary">离开声态后，仍可用磁贴切换声音模式。</string>
 </resources>

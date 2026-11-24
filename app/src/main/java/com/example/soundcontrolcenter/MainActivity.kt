@@ -19,6 +19,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,54 +88,64 @@ class MainActivity : ComponentActivity() {
                     Box(Modifier.safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().verticalScroll(rememberScrollState())
                             .padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                            Icon(painterResource(R.drawable.ic_wave), null, tint = MaterialTheme.colorScheme.primary)
-                            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayLarge)
-                            Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.titleMedium)
-                            Surface(shape = RoundedCornerShape(32.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                                Column(Modifier.fillMaxWidth().padding(24.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Icon(painterResource(R.drawable.ic_wave), null, tint = MaterialTheme.colorScheme.primary)
+                                Column {
+                                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+                                    Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     Waveform()
-                                    Spacer(Modifier.height(20.dp))
-                                    Text(stringResource(R.string.panel), style = MaterialTheme.typography.headlineMedium)
-                                    Text(stringResource(R.string.panel_summary), modifier = Modifier.padding(vertical = 8.dp))
-                                    Button(onClick = { startActivity(Intent(this@MainActivity, PanelActivity::class.java)) }) {
-                                        Text(stringResource(R.string.open_panel))
+                                    SettingRow(stringResource(R.string.panel), stringResource(R.string.panel_summary)) {
+                                        Button(onClick = { startActivity(Intent(this@MainActivity, PanelActivity::class.java)) }) {
+                                            Text(stringResource(R.string.open_panel))
+                                        }
                                     }
                                 }
                             }
-                            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                                Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                                    Text(stringResource(R.string.quick_settings), style = MaterialTheme.typography.titleLarge)
-                                    Text(stringResource(R.string.tile_summary), Modifier.padding(vertical = 8.dp))
-                                    Text(stringResource(R.string.silent_dnd_note))
-                                    if (!policyAccess.value) {
-                                        Text(stringResource(R.string.permission_body))
-                                        TextButton(onClick = {
-                                            try {
-                                                startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
-                                            } catch (_: ActivityNotFoundException) {
-                                                Toast.makeText(this@MainActivity, R.string.permission_hint, Toast.LENGTH_LONG).show()
-                                            }
-                                        }) { Text(stringResource(R.string.open_settings)) }
-                                    }
-                                    if (Build.VERSION.SDK_INT >= 37) {
-                                        val enabled = controlsEnabled.value
-                                        Text(stringResource(if (enabled) R.string.controls_active else R.string.controls_hint),
-                                            Modifier.padding(top = 8.dp))
-                                        OutlinedButton(onClick = {
-                                            val service = Intent(this@MainActivity, TileControlService::class.java)
-                                            if (enabled) {
-                                                tilePreferences().edit().putBoolean(TileControlService.ENABLED, false).apply()
-                                                stopService(service)
-                                            }
-                                            else if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
-                                                android.content.pm.PackageManager.PERMISSION_GRANTED) startForegroundService(service)
-                                            else notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                        }) {
-                                            Text(stringResource(if (enabled) R.string.stop_controls else R.string.start_controls))
+                            Text(stringResource(R.string.quick_settings), style = MaterialTheme.typography.titleLarge)
+                            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    SettingRow(stringResource(R.string.tile_title), stringResource(R.string.tile_summary)) {
+                                        if (!tileAdded.value) {
+                                            FilledTonalButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }
                                         }
                                     }
-                                    if (!tileAdded.value) {
-                                        OutlinedButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }
+                                    HorizontalDivider()
+                                    SettingRow(stringResource(R.string.dnd_title), stringResource(R.string.silent_dnd_note)) {
+                                        if (!policyAccess.value) {
+                                            FilledTonalButton(onClick = {
+                                                try {
+                                                    startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                                                } catch (_: ActivityNotFoundException) {
+                                                    Toast.makeText(this@MainActivity, R.string.permission_hint, Toast.LENGTH_LONG).show()
+                                                }
+                                            }) { Text(stringResource(R.string.open_settings_short)) }
+                                        }
+                                    }
+                                    if (Build.VERSION.SDK_INT >= 37) {
+                                        HorizontalDivider()
+                                        val enabled = controlsEnabled.value
+                                        SettingRow(
+                                            title = stringResource(R.string.background_controls),
+                                            summary = stringResource(R.string.tile_background_summary),
+                                            modifier = Modifier.toggleable(value = enabled, role = Role.Switch) { turnOn ->
+                                                val service = Intent(this@MainActivity, TileControlService::class.java)
+                                                if (!turnOn) {
+                                                    startService(service.setAction(TileControlService.STOP))
+                                                } else if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                                                    android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                                    startForegroundService(service)
+                                                } else {
+                                                    notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                                }
+                                            }
+                                        ) {
+                                            Switch(checked = enabled, onCheckedChange = null)
+                                        }
                                     }
                                 }
                             }
@@ -165,6 +177,18 @@ class MainActivity : ComponentActivity() {
         } else Toast.makeText(this, R.string.manual_tile, Toast.LENGTH_LONG).show()
     }
 
+}
+
+@Composable
+private fun SettingRow(title: String, summary: String, modifier: Modifier = Modifier, action: @Composable () -> Unit) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            action()
+        }
+        Text(summary, style = MaterialTheme.typography.bodyMedium)
+    }
 }
 
 @Composable
