@@ -1,6 +1,5 @@
 package com.example.soundcontrolcenter
 
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -20,8 +19,19 @@ class SoundTile : TileService() {
     }
     private var listening = false
 
+    override fun onTileAdded() {
+        super.onTileAdded()
+        tilePreferences().edit().putBoolean(TILE_ADDED, true).apply()
+    }
+
+    override fun onTileRemoved() {
+        super.onTileRemoved()
+        tilePreferences().edit().putBoolean(TILE_ADDED, false).apply()
+    }
+
     override fun onStartListening() {
         super.onStartListening()
+        tilePreferences().edit().putBoolean(TILE_ADDED, true).apply()
         if (!listening) {
             ContextCompat.registerReceiver(this, changes, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION),
                 ContextCompat.RECEIVER_EXPORTED)
@@ -52,29 +62,27 @@ class SoundTile : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val index = modes.indexOfFirst { it.id == audio.ringerMode }
-        val next = modes[(index + 1) % modes.size]
-        try {
-            audio.ringerMode = next.id
-            if (audio.ringerMode != next.id) {
-                Toast.makeText(this, getString(R.string.mode_unavailable, getString(next.label)),
-                    Toast.LENGTH_SHORT).show()
+        val initial = audio.ringerMode
+        val index = modes.indexOfFirst { it.id == initial }
+        var denied = false
+        for (step in 1 until modes.size) {
+            val next = modes[(index + step) % modes.size]
+            try {
+                audio.ringerMode = next.id
+            } catch (_: SecurityException) {
+                denied = true
             }
-        } catch (_: SecurityException) {
-            Toast.makeText(this, R.string.permission_body, Toast.LENGTH_LONG).show()
-            openPanel()
+            if (audio.ringerMode != initial) {
+                refresh()
+                return
+            }
         }
         refresh()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun openPanel() {
-        val panel = Intent(this, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (Build.VERSION.SDK_INT >= 34) {
-            startActivityAndCollapse(PendingIntent.getActivity(this, 0, panel, PendingIntent.FLAG_IMMUTABLE))
-        } else {
-            @Suppress("StartActivityAndCollapseDeprecated")
-            startActivityAndCollapse(panel)
-        }
+        val message = if (denied) getString(R.string.permission_body)
+            else getString(R.string.mode_unavailable, getString(modes[(index + 1) % modes.size].label))
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
+
+internal const val TILE_ADDED = "added"
+internal fun Context.tilePreferences() = getSharedPreferences("quick_settings", Context.MODE_PRIVATE)

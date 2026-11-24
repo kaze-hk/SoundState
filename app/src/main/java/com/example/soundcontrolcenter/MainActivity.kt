@@ -21,7 +21,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import android.content.SharedPreferences
+import android.view.ViewTreeObserver
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -34,6 +37,23 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 class MainActivity : ComponentActivity() {
+    private val tileAdded = mutableStateOf(false)
+    private val tileListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+        if (key == TILE_ADDED) tileAdded.value = prefs.getBoolean(TILE_ADDED, false)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val prefs = tilePreferences()
+        prefs.registerOnSharedPreferenceChangeListener(tileListener)
+        tileAdded.value = prefs.getBoolean(TILE_ADDED, false)
+    }
+
+    override fun onStop() {
+        tilePreferences().unregisterOnSharedPreferenceChangeListener(tileListener)
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,7 +81,9 @@ class MainActivity : ComponentActivity() {
                                 Column(Modifier.fillMaxWidth().padding(20.dp)) {
                                     Text(stringResource(R.string.quick_settings), style = MaterialTheme.typography.titleLarge)
                                     Text(stringResource(R.string.tile_summary), Modifier.padding(vertical = 8.dp))
-                                    OutlinedButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }
+                                    if (!tileAdded.value) {
+                                        OutlinedButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }
+                                    }
                                 }
                             }
                         }
@@ -77,6 +99,10 @@ class MainActivity : ComponentActivity() {
                 ComponentName(this, SoundTile::class.java), getString(R.string.app_name),
                 Icon.createWithResource(this, R.drawable.ic_wave), mainExecutor
             ) { result ->
+                if (result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ||
+                    result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED) {
+                    tilePreferences().edit().putBoolean(TILE_ADDED, true).apply()
+                }
                 val message = when (result) {
                     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> R.string.tile_added
                     StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> R.string.tile_exists
@@ -114,8 +140,15 @@ class PanelActivity : ComponentActivity() {
             (440 * metrics.density).toInt()), WindowManager.LayoutParams.WRAP_CONTENT)
         setFinishOnTouchOutside(true)
         val decor = window.decorView
+        decor.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (applyHeight()) return false
+                decor.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
         decor.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-            if (bottom - top != oldBottom - oldTop) applyHeight()
+            if (decor.isLaidOut && positionLoaded && bottom - top != oldBottom - oldTop) applyHeight()
         }
         setContent {
             SoundControlCenterTheme {
@@ -134,7 +167,7 @@ class PanelActivity : ComponentActivity() {
         return ((frame.height() - window.decorView.height) / 2).coerceAtLeast(0)
     }
 
-    private fun applyHeight() {
+    private fun applyHeight(): Boolean {
         if (!positionLoaded) {
             heightFraction = placement.getFloat("height_fraction", 0f).coerceIn(-1f, 1f)
             positionLoaded = true
@@ -144,7 +177,9 @@ class PanelActivity : ComponentActivity() {
         if (params.y != offset) {
             params.y = offset
             window.attributes = params
+            return true
         }
+        return false
     }
 
     private fun movePanel(delta: Float) {
