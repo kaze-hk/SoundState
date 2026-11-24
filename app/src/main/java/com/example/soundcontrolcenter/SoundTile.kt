@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.graphics.drawable.Icon
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.widget.Toast
@@ -15,9 +17,15 @@ import androidx.core.content.ContextCompat
 class SoundTile : TileService() {
     private val audio by lazy { getSystemService(AudioManager::class.java) }
     private val changes = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = refresh()
+        override fun onReceive(context: Context, intent: Intent) {
+            confirmMode()
+        }
     }
     private var listening = false
+    private val handler = Handler(Looper.getMainLooper())
+    private var pending: Control? = null
+    private var queuedClicks = 0
+    private val verify = Runnable { confirmMode(finalCheck = true) }
 
     override fun onTileAdded() {
         super.onTileAdded()
@@ -41,6 +49,9 @@ class SoundTile : TileService() {
     }
 
     override fun onStopListening() {
+        handler.removeCallbacks(verify)
+        pending = null
+        queuedClicks = 0
         if (listening) unregisterReceiver(changes)
         listening = false
         super.onStopListening()
@@ -62,24 +73,41 @@ class SoundTile : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val initial = audio.ringerMode
-        val index = modes.indexOfFirst { it.id == initial }
-        var denied = false
-        for (step in 1 until modes.size) {
-            val next = modes[(index + step) % modes.size]
-            try {
-                audio.ringerMode = next.id
-            } catch (_: SecurityException) {
-                denied = true
-            }
-            if (audio.ringerMode != initial) {
-                refresh()
-                return
-            }
+        queuedClicks++
+        if (pending == null) requestNextMode()
+    }
+
+    private fun requestNextMode() {
+        queuedClicks--
+        val current = audio.ringerMode
+        val next = modes[(modes.indexOfFirst { it.id == current } + 1) % modes.size]
+        pending = next
+        try {
+            audio.ringerMode = next.id
+        } catch (_: SecurityException) {
+            rejectChange(getString(R.string.permission_body))
+            return
         }
+        handler.postDelayed(verify, 750)
+        confirmMode()
+    }
+
+    private fun confirmMode(finalCheck: Boolean = false) {
         refresh()
-        val message = if (denied) getString(R.string.permission_body)
-            else getString(R.string.mode_unavailable, getString(modes[(index + 1) % modes.size].label))
+        val target = pending ?: return
+        if (audio.ringerMode == target.id) {
+            handler.removeCallbacks(verify)
+            pending = null
+            if (queuedClicks > 0) requestNextMode()
+        } else if (finalCheck) {
+            rejectChange(getString(R.string.mode_unavailable, getString(target.label)))
+        }
+    }
+
+    private fun rejectChange(message: String) {
+        pending = null
+        queuedClicks = 0
+        refresh()
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }

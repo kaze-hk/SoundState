@@ -5,7 +5,8 @@
     <string name="panel_summary">Adjust volume or switch sound modes.</string>
     <string name="open_panel">Open panel</string>
     <string name="quick_settings">Quick Settings</string>
-    <string name="tile_summary">Tap the tile to cycle sound modes. Touch and hold to open the panel.</string>
+    <string name="tile_summary">Tap to cycle through Ring, Vibrate, and Silent. Touch and hold to open the sound panel.</string>
+    <string name="silent_dnd_note">On some devices, entering or leaving Silent also changes Do Not Disturb.</string>
     <string name="add_tile">Add tile</string>
     <string name="tile_added">SoundState added to Quick Settings</string>
     <string name="tile_exists">SoundState is already in Quick Settings</string>
@@ -22,4 +23,9 @@
     <string name="permission_body">Allow SoundState to access Do Not Disturb in Settings, then try again.</string>
     <string name="open_settings">Open settings</string>
     <string name="permission_hint">Search Settings for Do Not Disturb access.</string>
+    <string name="background_controls">Background tile controls</string>
+    <string name="controls_active">Background tile controls are on</string>
+    <string name="controls_hint">Enable controls to use the tile after leaving SoundState. You can stop them from the notification.</string>
+    <string name="start_controls">Enable background controls</string>
+    <string name="stop_controls">Stop background controls</string>
 </resources>

@@ -1,6 +1,9 @@
 package com.example.soundcontrolcenter
 
+import android.app.NotificationManager
 import android.app.StatusBarManager
+import android.content.ActivityNotFoundException
+import android.provider.Settings
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Icon
@@ -37,6 +40,23 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermission = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (Build.VERSION.SDK_INT >= 37) {
+            if (granted) startForegroundService(Intent(this, TileControlService::class.java))
+            else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+        }
+    }
+
+    private val policyAccess = mutableStateOf(false)
+
+    override fun onResume() {
+        super.onResume()
+        policyAccess.value = getSystemService(NotificationManager::class.java).isNotificationPolicyAccessGranted
+    }
+
     private val tileAdded = mutableStateOf(false)
     private val tileListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         if (key == TILE_ADDED) tileAdded.value = prefs.getBoolean(TILE_ADDED, false)
@@ -81,6 +101,31 @@ class MainActivity : ComponentActivity() {
                                 Column(Modifier.fillMaxWidth().padding(20.dp)) {
                                     Text(stringResource(R.string.quick_settings), style = MaterialTheme.typography.titleLarge)
                                     Text(stringResource(R.string.tile_summary), Modifier.padding(vertical = 8.dp))
+                                    Text(stringResource(R.string.silent_dnd_note))
+                                    if (!policyAccess.value) {
+                                        Text(stringResource(R.string.permission_body))
+                                        TextButton(onClick = {
+                                            try {
+                                                startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                                            } catch (_: ActivityNotFoundException) {
+                                                Toast.makeText(this@MainActivity, R.string.permission_hint, Toast.LENGTH_LONG).show()
+                                            }
+                                        }) { Text(stringResource(R.string.open_settings)) }
+                                    }
+                                    if (Build.VERSION.SDK_INT >= 37) {
+                                        val running = TileControlService.running
+                                        Text(stringResource(if (running) R.string.controls_active else R.string.controls_hint),
+                                            Modifier.padding(top = 8.dp))
+                                        OutlinedButton(onClick = {
+                                            val service = Intent(this@MainActivity, TileControlService::class.java)
+                                            if (running) stopService(service)
+                                            else if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                                                android.content.pm.PackageManager.PERMISSION_GRANTED) startForegroundService(service)
+                                            else notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                        }) {
+                                            Text(stringResource(if (running) R.string.stop_controls else R.string.start_controls))
+                                        }
+                                    }
                                     if (!tileAdded.value) {
                                         OutlinedButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }
                                     }
