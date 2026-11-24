@@ -31,4 +31,6 @@
     <string name="dnd_title">勿扰模式</string>
     <string name="open_settings_short">设置</string>
     <string name="tile_background_summary">离开声态后，仍可用磁贴切换声音模式。</string>
+    <string name="done">完成并关闭声音控制界面</string>
+    <string name="landscape_modes_right">横屏时将声音模式放在右侧</string>
 </resources>

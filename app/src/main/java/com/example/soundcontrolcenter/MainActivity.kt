@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.soundcontrolcenter.ui.theme.SoundControlCenterTheme
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import android.service.quicksettings.TileService
@@ -84,21 +85,37 @@ class MainActivity : ComponentActivity() {
         setContent {
             SoundControlCenterTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    Box(Modifier.safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+                    BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+                        val landscape = maxWidth > maxHeight
+                        val prefs = remember { getSharedPreferences("layout", MODE_PRIVATE) }
+                        val modesOnRight = remember { mutableStateOf(prefs.getBoolean("modes_on_right", false)) }
                         val scroll = rememberScrollState()
                         LaunchedEffect(tileOpenCount.intValue) {
                             if (tileOpenCount.intValue > 0) scroll.scrollTo(0)
                         }
-                        Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().verticalScroll(scroll)
-                            .padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Column(Modifier.widthIn(max = if (landscape) 960.dp else 560.dp).fillMaxWidth().verticalScroll(scroll)
+                            .padding(horizontal = 24.dp, vertical = if (landscape) 8.dp else 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (landscape) 8.dp else 18.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(painterResource(R.drawable.ic_wave), null, tint = MaterialTheme.colorScheme.primary)
-                                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+                                Text(stringResource(R.string.app_name), Modifier.weight(1f), style = MaterialTheme.typography.headlineLarge)
+                                FilledTonalIconButton(onClick = { finish() }) {
+                                    Icon(painterResource(R.drawable.ic_done), stringResource(R.string.done))
+                                }
                             }
-                            SoundPanel()
+                            SoundPanel(landscape, modesOnRight.value)
                             Text(stringResource(R.string.quick_settings), style = MaterialTheme.typography.titleLarge)
                             Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
                                 Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Row(Modifier.fillMaxWidth().toggleable(value = modesOnRight.value, role = Role.Switch) { right ->
+                                        modesOnRight.value = right
+                                        prefs.edit().putBoolean("modes_on_right", right).apply()
+                                    }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Text(stringResource(R.string.landscape_modes_right), Modifier.weight(1f),
+                                            style = MaterialTheme.typography.titleMedium)
+                                        Switch(checked = modesOnRight.value, onCheckedChange = null)
+                                    }
+                                    HorizontalDivider()
                                     SettingRow(stringResource(R.string.tile_title), stringResource(R.string.tile_summary)) {
                                         if (!tileAdded.value) {
                                             FilledTonalButton(onClick = { addTile() }) { Text(stringResource(R.string.add_tile)) }

@@ -31,4 +31,6 @@
     <string name="dnd_title">Do Not Disturb</string>
     <string name="open_settings_short">Settings</string>
     <string name="tile_background_summary">Use the tile to switch sound modes after leaving SoundState.</string>
+    <string name="done">Done, close sound controls</string>
+    <string name="landscape_modes_right">Place sound modes on the right in landscape</string>
 </resources>

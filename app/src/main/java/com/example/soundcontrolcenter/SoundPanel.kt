@@ -43,7 +43,7 @@ internal val modes = listOf(
 )
 
 @Composable
-internal fun SoundPanel() {
+internal fun SoundPanel(landscape: Boolean, modesOnRight: Boolean) {
     val context = LocalContext.current
     val audio = remember { context.getSystemService(AudioManager::class.java) }
     val permissionHint = stringResource(R.string.permission_hint)
@@ -74,43 +74,34 @@ internal fun SoundPanel() {
             }
         }
     }
-    val colors = MaterialTheme.colorScheme
-    Surface(shape = RoundedCornerShape(24.dp), color = colors.surfaceContainerHigh,
+    val selectMode: (Int, String) -> Unit = { value, unavailable ->
+        change { audio.ringerMode = value }
+        if (!permissionNeeded && audio.ringerMode != value) message = unavailable
+    }
+    val setVolume: (Int, Int) -> Unit = { id, index -> change { audio.setStreamVolume(id, index, 0) } }
+    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp)) {
-            Text(stringResource(R.string.panel), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                modes.forEach { (label, icon, value) ->
-                    val name = stringResource(label)
-                    val unavailable = stringResource(R.string.mode_unavailable, name)
-                    val selected = mode == value
-                    Box(Modifier.weight(1f).clip(CircleShape)
-                        .background(if (selected) colors.primary else colors.secondaryContainer)
-                        .selectable(selected, role = Role.RadioButton, onClick = {
-                            change { audio.ringerMode = value }
-                            if (!permissionNeeded && audio.ringerMode != value) message = unavailable
-                        }).heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
-                        Icon(painterResource(icon), name, tint = if (selected) colors.onPrimary else colors.onSecondaryContainer)
+        Column(Modifier.padding(if (landscape) 12.dp else 20.dp)) {
+            if (landscape) {
+                val rail: @Composable () -> Unit = {
+                    Column(Modifier.width(72.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        modes.forEach { ModeButton(it, mode == it.id, Modifier.fillMaxWidth(), selectMode) }
                     }
                 }
-            }
-            Spacer(Modifier.height(16.dp))
-            channels.forEach { (label, icon, id) ->
-                val name = stringResource(label)
-                val min = if (Build.VERSION.SDK_INT >= 28) audio.getStreamMinVolume(id) else 0
-                val max = audio.getStreamMaxVolume(id)
-                val level = values[id] ?: audio.getStreamVolume(id)
-                Text(name, style = MaterialTheme.typography.labelLarge)
+                val railFirst = modesOnRight == (androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Icon(painterResource(icon), null, tint = colors.onSurfaceVariant)
-                    Slider(value = level.toFloat(), onValueChange = { position ->
-                        val index = position.roundToInt()
-                        if (index != values[id]) change { audio.setStreamVolume(id, index, 0) }
-                    }, modifier = Modifier.fillMaxWidth().semantics { contentDescription = name },
-                        valueRange = min.toFloat()..max.coerceAtLeast(min + 1).toFloat(),
-                        enabled = !audio.isVolumeFixed && max > min)
+                    if (railFirst) rail()
+                    VolumeControls(audio, values, true, Modifier.weight(1f), setVolume)
+                    if (!railFirst) rail()
                 }
+            } else {
+                Text(stringResource(R.string.panel), style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    modes.forEach { ModeButton(it, mode == it.id, Modifier.weight(1f), selectMode) }
+                }
+                Spacer(Modifier.height(16.dp))
+                VolumeControls(audio, values, false, onVolume = setVolume)
             }
             if (message.isNotEmpty()) Text(message)
         }
@@ -127,4 +118,42 @@ internal fun SoundPanel() {
             }
         }) { Text(stringResource(R.string.open_settings)) } },
         dismissButton = { TextButton(onClick = { permissionNeeded = false }) { Text(stringResource(android.R.string.cancel)) } })
+}
+
+@Composable
+private fun ModeButton(control: Control, selected: Boolean, modifier: Modifier, onSelect: (Int, String) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val name = stringResource(control.label)
+    val unavailable = stringResource(R.string.mode_unavailable, name)
+    Box(modifier.clip(CircleShape)
+        .background(if (selected) colors.primary else colors.secondaryContainer)
+        .selectable(selected, role = Role.RadioButton, onClick = { onSelect(control.id, unavailable) })
+        .heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+        Icon(painterResource(control.icon), name, tint = if (selected) colors.onPrimary else colors.onSecondaryContainer)
+    }
+}
+
+@Composable
+private fun VolumeControls(audio: AudioManager, values: Map<Int, Int>, compact: Boolean,
+    modifier: Modifier = Modifier, onVolume: (Int, Int) -> Unit) {
+    Column(modifier) {
+        channels.forEach { (label, icon, id) ->
+            val name = stringResource(label)
+            val min = if (Build.VERSION.SDK_INT >= 28) audio.getStreamMinVolume(id) else 0
+            val max = audio.getStreamMaxVolume(id)
+            val level = values[id] ?: audio.getStreamVolume(id)
+            if (!compact) Text(name, style = MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(painterResource(icon), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (compact) Text(name, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                Slider(value = level.toFloat(), onValueChange = { position ->
+                    val index = position.roundToInt()
+                    if (index != level) onVolume(id, index)
+                }, modifier = Modifier.weight(3f).semantics { contentDescription = name },
+                    valueRange = min.toFloat()..max.coerceAtLeast(min + 1).toFloat(),
+                    enabled = !audio.isVolumeFixed && max > min)
+            }
+        }
+    }
 }
