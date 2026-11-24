@@ -24,6 +24,7 @@ class SoundTile : TileService() {
     private var listening = false
     private val handler = Handler(Looper.getMainLooper())
     private var pending: Control? = null
+    private var waitingForService = false
     private var queuedClicks = 0
     private val verify = Runnable { confirmMode(finalCheck = true) }
 
@@ -74,7 +75,25 @@ class SoundTile : TileService() {
     override fun onClick() {
         super.onClick()
         queuedClicks++
-        if (pending == null) requestNextMode()
+        if (pending != null || waitingForService) return
+        if (Build.VERSION.SDK_INT >= 37 && !TileControlService.running &&
+            tilePreferences().getBoolean(TileControlService.ENABLED, false)) {
+            waitingForService = true
+            val ready = object : android.os.ResultReceiver(handler) {
+                override fun onReceiveResult(resultCode: Int, resultData: android.os.Bundle?) {
+                    waitingForService = false
+                    if (queuedClicks > 0 && pending == null) requestNextMode()
+                }
+            }
+            try {
+                startForegroundService(Intent(this, TileControlService::class.java)
+                    .putExtra(TileControlService.READY, ready))
+                return
+            } catch (_: android.app.ForegroundServiceStartNotAllowedException) {
+                waitingForService = false
+            }
+        }
+        requestNextMode()
     }
 
     private fun requestNextMode() {

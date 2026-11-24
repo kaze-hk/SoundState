@@ -16,6 +16,8 @@ class TileControlService : Service() {
     companion object {
         var running by mutableStateOf(false)
             private set
+        const val ENABLED = "background_controls_enabled"
+        const val READY = "controls_ready"
         private const val CHANNEL = "background_controls"
         private const val STOP = "com.example.soundcontrolcenter.STOP_CONTROLS"
     }
@@ -23,6 +25,7 @@ class TileControlService : Service() {
     @RequiresApi(37)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) {
+            tilePreferences().edit().putBoolean(ENABLED, false).apply()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -46,7 +49,9 @@ class TileControlService : Service() {
             .build()
         startForeground(1, notification)
         running = true
-        return START_NOT_STICKY
+        tilePreferences().edit().putBoolean(ENABLED, true).apply()
+        intent?.getParcelableExtra(READY, android.os.ResultReceiver::class.java)?.send(0, null)
+        return START_STICKY
     }
 
     override fun onDestroy() {

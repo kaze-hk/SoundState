@@ -57,8 +57,10 @@ class MainActivity : ComponentActivity() {
         policyAccess.value = getSystemService(NotificationManager::class.java).isNotificationPolicyAccessGranted
     }
 
+    private val controlsEnabled = mutableStateOf(false)
     private val tileAdded = mutableStateOf(false)
     private val tileListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+        if (key == TileControlService.ENABLED) controlsEnabled.value = prefs.getBoolean(key, false)
         if (key == TILE_ADDED) tileAdded.value = prefs.getBoolean(TILE_ADDED, false)
     }
 
@@ -67,6 +69,7 @@ class MainActivity : ComponentActivity() {
         val prefs = tilePreferences()
         prefs.registerOnSharedPreferenceChangeListener(tileListener)
         tileAdded.value = prefs.getBoolean(TILE_ADDED, false)
+        controlsEnabled.value = prefs.getBoolean(TileControlService.ENABLED, false)
     }
 
     override fun onStop() {
@@ -113,17 +116,20 @@ class MainActivity : ComponentActivity() {
                                         }) { Text(stringResource(R.string.open_settings)) }
                                     }
                                     if (Build.VERSION.SDK_INT >= 37) {
-                                        val running = TileControlService.running
-                                        Text(stringResource(if (running) R.string.controls_active else R.string.controls_hint),
+                                        val enabled = controlsEnabled.value
+                                        Text(stringResource(if (enabled) R.string.controls_active else R.string.controls_hint),
                                             Modifier.padding(top = 8.dp))
                                         OutlinedButton(onClick = {
                                             val service = Intent(this@MainActivity, TileControlService::class.java)
-                                            if (running) stopService(service)
+                                            if (enabled) {
+                                                tilePreferences().edit().putBoolean(TileControlService.ENABLED, false).apply()
+                                                stopService(service)
+                                            }
                                             else if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
                                                 android.content.pm.PackageManager.PERMISSION_GRANTED) startForegroundService(service)
                                             else notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                                         }) {
-                                            Text(stringResource(if (running) R.string.stop_controls else R.string.start_controls))
+                                            Text(stringResource(if (enabled) R.string.stop_controls else R.string.start_controls))
                                         }
                                     }
                                     if (!tileAdded.value) {
