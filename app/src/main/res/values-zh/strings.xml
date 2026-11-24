@@ -5,7 +5,7 @@
     <string name="panel_summary">调节音量或切换声音模式。</string>
     <string name="open_panel">打开面板</string>
     <string name="quick_settings">快捷设置</string>
-    <string name="tile_summary">点按可在响铃、振动和静音之间切换，长按可打开声音面板。</string>
+    <string name="tile_summary">点按可在响铃、振动和静音之间切换，长按可打开声态调节音量。</string>
     <string name="silent_dnd_note">在部分设备上，进入或退出静音也会改变系统勿扰状态。</string>
     <string name="add_tile">添加快捷按钮</string>
     <string name="tile_added">声态已添加到快捷设置</string>

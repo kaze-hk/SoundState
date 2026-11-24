@@ -8,14 +8,11 @@
         android:fullBackupContent="@xml/backup_rules" android:icon="@drawable/soundstate_icon"
         android:roundIcon="@drawable/soundstate_icon" android:label="@string/app_name"
         android:localeConfig="@xml/locales_config" android:supportsRtl="true" android:theme="@style/Theme.SoundControlCenter">
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
-        <activity android:name=".PanelActivity" android:exported="true" android:excludeFromRecents="true"
-            android:taskAffinity=".soundpanel" android:launchMode="singleTop" android:theme="@style/Theme.SoundPanel">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES"/>
                 <category android:name="android.intent.category.DEFAULT"/>

@@ -5,7 +5,7 @@
     <string name="panel_summary">Adjust volume or switch sound modes.</string>
     <string name="open_panel">Open panel</string>
     <string name="quick_settings">Quick Settings</string>
-    <string name="tile_summary">Tap to cycle through Ring, Vibrate, and Silent. Touch and hold to open the sound panel.</string>
+    <string name="tile_summary">Tap to cycle through Ring, Vibrate, and Silent. Touch and hold to open SoundState and adjust volume.</string>
     <string name="silent_dnd_note">On some devices, entering or leaving Silent also changes Do Not Disturb.</string>
     <string name="add_tile">Add tile</string>
     <string name="tile_added">SoundState added to Quick Settings</string>

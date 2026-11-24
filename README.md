@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/soundstate.svg" width="88" alt="SoundState 声波图标"></p>
 <h1 align="center">SoundState · 声态</h1>
 <p align="center">一个随手可调的 Android 声音面板。<br>
-<sub>A floating volume panel for Android 7.0+ · 简体中文 / English</sub></p>
+<sub>In-app volume controls for Android 7.0+ · 简体中文 / English</sub></p>
 
 <p align="center">
   <a href="https://github.com/kaze-hk/SoundState/releases/latest"><img height="40" alt="从 GitHub Releases 下载 APK" src="https://img.shields.io/badge/GitHub_Releases-下载_APK-39594f?style=for-the-badge&amp;logo=github&amp;logoColor=white"></a>
@@ -10,14 +10,12 @@
 
 ## 从下拉菜单开始
 
-将 **声态** 添加到快捷设置。开会前轻点一下磁贴就能从响铃切到振动；听音乐时长按磁贴，声音面板会浮在当前应用上方。
+将 **声态** 添加到快捷设置。开会前轻点一下磁贴就能从响铃切到振动；听音乐时长按磁贴即可打开声态，在首页调整音量。
 
 | 操作 | 效果 |
 | --- | --- |
 | 单击磁贴 | 在响铃、振动、静音间循环，磁贴图标随系统状态更新 |
-| 长按磁贴 | 打开面板，分别调节媒体、铃声和闹钟音量 |
-| 拖动面板顶部的短横条 | 调整面板高度，下次打开时恢复 |
-| 点按面板外侧 | 立即收起；松手后默认空闲 6 秒也会自动收起 |
+| 长按磁贴 | 打开声态，在首页分别调节媒体、铃声和闹钟音量 |
 
 面板跟随系统深浅主题，在支持动态配色的设备上使用壁纸色。
 
