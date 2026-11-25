@@ -38,6 +38,8 @@
 
 调试 APK 位于 `app/build/outputs/apk/debug/`。
 
+维护者可查看[自动发布说明](docs/releasing.md)。
+
 ## 许可
 
 原创代码和资源采用 [PolyForm Noncommercial License 1.0.0](LICENSE)，允许按条款进行非商业使用、修改和分发。商业授权请与权利人另行约定。第三方组件及 Gradle Wrapper 遵循各自许可。

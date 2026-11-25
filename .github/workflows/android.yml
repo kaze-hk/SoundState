@@ -1,0 +1,139 @@
+name: Android
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    concurrency:
+      group: build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    outputs:
+      version: ${{ steps.version.outputs.name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Calculate Android version
+        id: version
+        run: |
+          # Last main commit before automatic publishing (1.0.7, versionCode 8).
+          base=96be29cbb18de742d4a22007d67b63c0bd09ff26
+          git merge-base --is-ancestor "$base" HEAD
+          distance=$(git rev-list --first-parent --count "$base..HEAD")
+          printf 'name=1.0.%d\ncode=%d\n' "$((7 + distance))" "$((8 + distance))" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+      - name: Install Android SDK
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-37' 'build-tools;36.0.0'
+      - name: Build, lint and test
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: ./gradlew -PreleaseVersionName="$VERSION_NAME" -PreleaseVersionCode="$VERSION_CODE" :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleRelease
+      - name: Save diagnostic reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-reports
+          path: app/build/reports/
+          retention-days: 7
+      - name: Save unsigned release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-release
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !github.event.deleted
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    concurrency: soundstate-stable-publication
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ needs.build.outputs.version }}
+    steps:
+      - name: Check if the commit still needs publication
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tip=$(gh api "repos/$GH_REPO/branches/main" --jq .commit.sha)
+          previous=$(gh release view --json tagName --jq .tagName)
+          if [[ "$tip" == "$GITHUB_SHA" && "$previous" != "$TAG" ]]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: steps.state.outputs.publish == 'true'
+        with:
+          name: unsigned-release
+      - name: Install signing tools
+        if: steps.state.outputs.publish == 'true'
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'build-tools;36.0.0'
+      - name: Check package identity and upgrade path
+        if: steps.state.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh release view --json tagName --jq .tagName)
+          [[ "$previous" != "$TAG" && "$(printf '%s\n' "$previous" "$TAG" | sort -V | tail -1)" == "$TAG" ]]
+          gh release download "$previous" --pattern "SoundState-${previous#v}.apk" --dir previous
+          manifest="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          [[ "$("$manifest" manifest application-id app-release-unsigned.apk)" == io.github.kaze_hk.soundstate ]]
+          [[ "v$("$manifest" manifest version-name app-release-unsigned.apk)" == "$TAG" ]]
+          old_code=$("$manifest" manifest version-code "previous/SoundState-${previous#v}.apk")
+          new_code=$("$manifest" manifest version-code app-release-unsigned.apk)
+          (( new_code > old_code ))
+      - name: Sign and verify APK
+        if: steps.state.outputs.publish == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          : "${KEYSTORE_BASE64:?Missing KEYSTORE_BASE64}" "${KEYSTORE_PASSWORD:?Missing KEYSTORE_PASSWORD}"
+          umask 077
+          key=$(mktemp)
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$key"
+          apk="SoundState-${TAG#v}.apk"
+          signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$signer" sign --ks "$key" --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --out "$apk" app-release-unsigned.apk
+          "$signer" verify --print-certs "$apk" | grep -Fx 'Signer #1 certificate SHA-256 digest: 910a4095fa2a64c030c8f284e3152e2fa2fecfe48f8a0f3f5d846a21badae701'
+          sha256sum "$apk" > "$apk.sha256"
+      - name: Publish verified assets
+        if: steps.state.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="SoundState-${TAG#v}.apk"
+          if draft=$(gh release view "$TAG" --json isDraft --jq .isDraft); then
+            [[ "$draft" == true ]]
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --draft --generate-notes --title "SoundState ${TAG#v} · 声态"
+          fi
+          gh release upload "$TAG" "$apk" "$apk.sha256" --clobber
+          gh release edit "$TAG" --draft=false --latest

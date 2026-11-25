@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.kaze_hk.soundstate"
         minSdk = 24
         targetSdk = 37
-        versionCode = 8
-        versionName = "1.0.7"
+        versionCode = providers.gradleProperty("releaseVersionCode").orNull?.toInt() ?: 8
+        versionName = providers.gradleProperty("releaseVersionName").getOrElse("1.0.7")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

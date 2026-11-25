@@ -38,6 +38,8 @@ Open the project root in Android Studio, install Android SDK 37, and run the inc
 
 The debug APK is written to `app/build/outputs/apk/debug/`.
 
+Every push to `main` triggers a verified, signed GitHub release. [Release workflow](.github/workflows/android.yml)
+
 ## License
 
 The original code and assets are available under the [PolyForm Noncommercial License 1.0.0](LICENSE) for noncommercial use, modification and distribution under its terms. Contact the rights holder for commercial licensing. Third-party components and the Gradle Wrapper retain their respective licenses.
